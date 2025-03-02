@@ -1,13 +1,11 @@
-// axios-interceptor.ts
 import axios from "axios";
 
-const axiosConfig = {}
+const axiosConfig: { jwt?: string } = {};
 
 axios.interceptors.request.use((request) => {
     if (axiosConfig.jwt) {
         request.headers['Authorization'] = `Bearer ${axiosConfig.jwt}`;
     }
-  
     return request;
 });
 
