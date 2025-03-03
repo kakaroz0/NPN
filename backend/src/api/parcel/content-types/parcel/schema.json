@@ -11,7 +11,7 @@
     "draftAndPublish": true
   },
   "attributes": {
-    "tracking_id": {
+    "trackingId": {
       "type": "string",
       "default": "-"
     },

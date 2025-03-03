@@ -1,4 +1,4 @@
-"use client";  // Add this line at the very top
+"use client";
 
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
@@ -11,12 +11,12 @@ export function useTracking(trackingId: string) {
   useEffect(() => {
     if (!trackingId) return;
 
-    // Request parcel data
+    // ส่ง trackingId ไปที่ Server เพื่อขออัปเดตสถานะพัสดุ
     socket.emit("track_parcel", trackingId);
 
-    // Update parcel data when received from Strapi
+    // รับข้อมูลพัสดุเมื่อเซิร์ฟเวอร์ส่งข้อมูลมา
     socket.on("parcel_update", (data) => {
-      if (data.tracking_id === trackingId) {
+      if (data.trackingId === trackingId) { 
         setParcel(data);
       }
     });

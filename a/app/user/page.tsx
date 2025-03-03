@@ -4,25 +4,28 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import axiosConfig from "../axios-interceptor";
 import Navbar from "./navbar";
-import { useTracking } from "../hook/useTracking";  // ควรใช้ hook นี้ในการดึงข้อมูลการติดตาม
+import { useTracking } from "../hook/useTracking";  // ใช้ WebSocket เพื่อติดตามพัสดุ
 
 export default function UserPage() {
     const [userName, setUserName] = useState<string | null>(null);
     const [userId, setUserId] = useState<number | null>(null);
-    const [trackingId, setTrackingId] = useState("");  // trackingId สำหรับใส่หมายเลขติดตาม
-    const [parcel, setParcel] = useState<any>(null);
+    const [trackingId, setTrackingId] = useState("");  // ค่า Tracking ID ที่จะใช้
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [parcelData, setParcelData] = useState<any>(null);  // สำหรับเก็บข้อมูลสถานะพัสดุ
 
-    // ฟังก์ชันเพื่อดึงข้อมูลผู้ใช้จาก API
+    // ใช้ Hook สำหรับติดตามสถานะพัสดุแบบ Real-time
+    const parcel = useTracking(trackingId);
+
+    // ฟังก์ชันดึงข้อมูลผู้ใช้
     const fetchUserData = async () => {
         setLoading(true);
         try {
             const response = await axios.get("http://localhost:1337/api/users/me", {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
-            setUserName(response.data.username);  // เก็บชื่อผู้ใช้จาก API
-            setUserId(response.data.id);  // เก็บ userId จากข้อมูลผู้ใช้
+            setUserName(response.data.username);
+            setUserId(response.data.id);
         } catch (error) {
             console.error("Failed to fetch user data:", error);
             setError("Failed to fetch user data.");
@@ -31,20 +34,24 @@ export default function UserPage() {
         }
     };
 
-    // ฟังก์ชันเพื่อดึงข้อมูลพัสดุตาม userId และ trackingId
-    const fetchParcelData = async () => {
-        if (!userId || !trackingId) return; // ตรวจสอบว่า userId และ trackingId มีค่าหรือไม่ก่อนที่จะส่งคำขอ
+    // ฟังก์ชันดึงข้อมูลพัสดุจาก Strapi
+    const fetchParcelData = async (trackingId: string) => {
+        if (!trackingId) {
+            setError("กรุณากรอกหมายเลขติดตาม");
+            return; // หยุดการทำงานหากไม่มียอดติดตาม
+        }
         setLoading(true);
-        setError(null);
-
         try {
-            const response = await axios.get(
-                `http://localhost:1337/api/parcels?tracking_id=${trackingId}`,
-                {
-                    headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
-                }
-            );
-            setParcel(response.data);  // เก็บข้อมูลพัสดุที่ได้รับจาก API
+            const response = await axios.get(`http://localhost:1337/api/parcels?trackingId=${trackingId}`, {
+                headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
+            });
+            console.log(`Fetching parcel data with trackingId: ${trackingId}`);
+
+            if (response.data && response.data.length > 0) {
+                setParcelData(response.data[0]);
+            } else {
+                setParcelData(null); // ไม่มีข้อมูลพัสดุ
+            }
         } catch (error) {
             console.error("Failed to fetch parcel data:", error);
             setError("Failed to fetch parcel data.");
@@ -54,32 +61,42 @@ export default function UserPage() {
     };
 
     useEffect(() => {
-        fetchUserData(); // ดึงข้อมูลผู้ใช้เมื่อ component โหลด
+        fetchUserData();
     }, []);
 
+    // ใช้ WebSocket ถ้าหาก trackingId มีค่า
     useEffect(() => {
-        if (userId && trackingId) {
-            fetchParcelData(); // ดึงข้อมูลพัสดุตาม userId และ trackingId เมื่อทั้งสองมีค่า
+        if (trackingId) {
+            // ตรวจสอบก่อนว่า WebSocket ให้ข้อมูลมาไหม
+            if (!parcel) {
+                fetchParcelData(trackingId);  // ถ้าไม่มีข้อมูลจาก WebSocket ให้ดึงจาก API
+            }
         }
-    }, [userId, trackingId]);  // เมื่อ userId หรือ trackingId เปลี่ยน
+    }, [trackingId, parcel]);  // ตรวจสอบทั้ง trackingId และ parcel ที่ได้รับจาก WebSocket
 
     return (
         <div>
-            <Navbar /> {/* เพิ่ม Navbar ที่นี่ */}
+            <Navbar /> {/* Navbar */}
             <div className="text-center mt-8">
                 <h1 className="text-2xl font-bold">สถานะการส่งของ</h1>
                 {loading && <p>กำลังโหลด...</p>}
                 {error && <p className="text-red-500">{error}</p>}
-                <p>Status: {parcel?.status ?? 'ไม่พบข้อมูล'}</p>
             </div>
             <div className="container mx-auto p-4">
-                <h1 className="text-xl font-bold">Tracking ID: {trackingId}</h1> {/* แสดง Tracking ID */}
+                <h1 className="text-xl font-bold">Tracking ID: {trackingId}</h1>
+                <input
+                    type="text"
+                    value={trackingId}
+                    onChange={(e) => setTrackingId(e.target.value)}
+                    placeholder="กรอกหมายเลขติดตาม"
+                    className="border rounded p-2 mt-2"
+                />
                 <div className="mt-4">
-                    {parcel ? (
+                    {parcelData ? (
                         <div className="bg-white p-4 shadow-md rounded-md">
-                            <p>Status: {parcel?.status ?? 'Loading...'}</p>
-                            <p>Location: {parcel?.location?.lat ?? 'Loading...'}, {parcel?.location?.lon ?? 'Loading...'}</p>
-                            <p>Timestamp: {parcel?.timestamp ?? 'Loading...'}</p>
+                            <p>Status: {parcelData?.status ?? 'Loading...'}</p>
+                            <p>Location: {parcelData?.location?.lat ?? 'Loading...'}, {parcelData?.location?.lon ?? 'Loading...'}</p>
+                            <p>Timestamp: {parcelData?.timestamp ?? 'Loading...'}</p>
                         </div>
                     ) : (
                         !loading && <p>ไม่พบพัสดุ</p>

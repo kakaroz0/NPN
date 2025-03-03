@@ -394,7 +394,7 @@ export interface ApiParcelParcel extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     statusa: Schema.Attribute.String;
     timestamp: Schema.Attribute.DateTime;
-    tracking_id: Schema.Attribute.String & Schema.Attribute.DefaultTo<'-'>;
+    trackingId: Schema.Attribute.String & Schema.Attribute.DefaultTo<'-'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
