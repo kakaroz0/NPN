@@ -372,6 +372,7 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
 export interface ApiParcelParcel extends Struct.CollectionTypeSchema {
   collectionName: 'parcels';
   info: {
+    description: '';
     displayName: 'parcel';
     pluralName: 'parcels';
     singularName: 'parcel';
@@ -391,12 +392,16 @@ export interface ApiParcelParcel extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     location: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
-    status_id: Schema.Attribute.String;
+    statusa: Schema.Attribute.String;
     timestamp: Schema.Attribute.DateTime;
-    tracking_id: Schema.Attribute.String;
+    tracking_id: Schema.Attribute.String & Schema.Attribute.DefaultTo<'-'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'oneToMany',
+      'plugin::users-permissions.user'
+    >;
   };
 }
 
@@ -875,6 +880,7 @@ export interface PluginUsersPermissionsUser
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Private;
+    parcel: Schema.Attribute.Relation<'manyToOne', 'api::parcel.parcel'>;
     password: Schema.Attribute.Password &
       Schema.Attribute.Private &
       Schema.Attribute.SetMinMaxLength<{

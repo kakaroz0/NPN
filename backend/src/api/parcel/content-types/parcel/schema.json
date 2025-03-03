@@ -4,16 +4,18 @@
   "info": {
     "singularName": "parcel",
     "pluralName": "parcels",
-    "displayName": "parcel"
+    "displayName": "parcel",
+    "description": ""
   },
   "options": {
     "draftAndPublish": true
   },
   "attributes": {
     "tracking_id": {
-      "type": "string"
+      "type": "string",
+      "default": "-"
     },
-    "status_id": {
+    "statusa": {
       "type": "string"
     },
     "location": {
@@ -21,6 +23,12 @@
     },
     "timestamp": {
       "type": "datetime"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "plugin::users-permissions.user",
+      "mappedBy": "parcel"
     }
   }
 }
