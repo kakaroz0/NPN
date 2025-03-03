@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "parcels",
+  "info": {
+    "singularName": "parcel",
+    "pluralName": "parcels",
+    "displayName": "parcel"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "tracking_id": {
+      "type": "string"
+    },
+    "status_id": {
+      "type": "string"
+    },
+    "location": {
+      "type": "json"
+    },
+    "timestamp": {
+      "type": "datetime"
+    }
+  }
+}
