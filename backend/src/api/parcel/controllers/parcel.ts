@@ -32,4 +32,20 @@ module.exports = {
       return ctx.internalServerError('Something went wrong.');
     }
   },
+
+  async findAll(ctx) {
+    try {
+      // ดึงข้อมูลพัสดุทั้งหมด
+      const parcels = await strapi.entityService.findMany('api::parcel.parcel', {
+        populate: '*', // ดึงข้อมูลทั้งหมดที่เกี่ยวข้อง
+      });
+
+      // ส่งข้อมูลพัสดุกลับ
+      return parcels;
+    } catch (error) {
+      // จัดการข้อผิดพลาด
+      strapi.log.error('Error fetching all parcels:', error);
+      return ctx.internalServerError('Something went wrong.');
+    }
+  },
 };

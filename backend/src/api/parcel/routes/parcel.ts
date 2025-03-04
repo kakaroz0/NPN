@@ -5,7 +5,16 @@ module.exports = {
       path: '/parcels',
       handler: 'parcel.find',
       config: {
-        // หากต้องการให้ต้องมีการยืนยันตัวตน (JWT)
+        auth: {
+          required: true,
+        },
+      },
+    },
+    {
+      method: 'GET',
+      path: '/parcels/all',
+      handler: 'parcel.findAll',
+      config: {
         auth: {
           required: true,
         },
