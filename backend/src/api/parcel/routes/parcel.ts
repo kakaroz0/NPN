@@ -20,5 +20,17 @@ module.exports = {
         },
       },
     },
+    {
+      method: 'GET',
+      path: '/parcels/user/:userId', // กำหนดเส้นทางสำหรับดึงข้อมูลพัสดุจาก userId
+      handler: 'parcel.findByUserId', // เรียกใช้เมธอด findByUserId
+      config: {
+        auth: {
+          required: true, // เพิ่มการตรวจสอบการเข้าสู่ระบบสำหรับเส้นทางนี้
+        },
+        policies: [], // สามารถเพิ่ม policies ถ้าจำเป็น
+        middlewares: [], // สามารถเพิ่ม middlewares ถ้าจำเป็น
+      },
+    },
   ],
 };

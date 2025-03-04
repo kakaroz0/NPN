@@ -13,6 +13,7 @@ export default function UserPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [parcelData, setParcelData] = useState<any>(null);  // สำหรับเก็บข้อมูลสถานะพัสดุ
+    const [userParcels, setUserParcels] = useState<any[]>([]); // เก็บข้อมูลพัสดุทั้งหมดของผู้ใช้
 
     // ใช้ Hook สำหรับติดตามสถานะพัสดุแบบ Real-time
     const parcel = useTracking(trackingId);
@@ -34,7 +35,24 @@ export default function UserPage() {
         }
     };
 
-    // ฟังก์ชันดึงข้อมูลพัสดุจาก Strapi
+    // ฟังก์ชันดึงข้อมูลพัสดุของผู้ใช้
+    const fetchUserParcels = async () => {
+        if (!userId) return;  // ตรวจสอบว่า userId มีค่าหรือไม่
+        setLoading(true);
+        try {
+            const response = await axios.get(`http://localhost:1337/api/parcels/user/${userId}`, {
+                headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
+            });
+            setUserParcels(response.data);
+        } catch (error) {
+            console.error("Failed to fetch user parcels:", error);
+            setError("Failed to fetch user parcels.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ฟังก์ชันดึงข้อมูลพัสดุจาก Strapi ตาม trackingId
     const fetchParcelData = async (trackingId: string) => {
         if (!trackingId) {
             setError("กรุณากรอกหมายเลขติดตาม");
@@ -64,45 +82,79 @@ export default function UserPage() {
         fetchUserData();
     }, []);
 
+    // Fetch parcels of the user when userId changes
+    useEffect(() => {
+        if (userId) {
+            fetchUserParcels();
+        }
+    }, [userId]);
+
     // ใช้ WebSocket ถ้าหาก trackingId มีค่า
     useEffect(() => {
         if (trackingId) {
-            // ตรวจสอบก่อนว่า WebSocket ให้ข้อมูลมาไหม
             if (!parcel) {
                 fetchParcelData(trackingId);  // ถ้าไม่มีข้อมูลจาก WebSocket ให้ดึงจาก API
             } else {
                 setParcelData(parcel);  // ถ้ามีข้อมูลจาก WebSocket ให้อัปเดต parcelData
             }
         }
-    }, [trackingId, parcel]);  // ตรวจสอบทั้ง trackingId และ parcel ที่ได้รับจาก WebSocket
+    }, [trackingId, parcel]);
 
     return (
-        <div>
+        <div className="bg-gray-50 min-h-screen flex flex-col">
             <Navbar /> {/* Navbar */}
-            <div className="text-center mt-8">
-                <h1 className="text-2xl font-bold">สถานะการส่งของ</h1>
-                {loading && <p>กำลังโหลด...</p>}
-                {error && <p className="text-red-500">{error}</p>}
-            </div>
-            <div className="container mx-auto p-4">
-                <h1 className="text-xl font-bold">Tracking ID: {trackingId}</h1>
-                <input
-                    type="text"
-                    value={trackingId}
-                    onChange={(e) => setTrackingId(e.target.value)}
-                    placeholder="กรอกหมายเลขติดตาม"
-                    className="border rounded p-2 mt-2"
-                />
-                <div className="mt-4">
-                    {parcelData ? (
-                        <div className="bg-white p-4 shadow-md rounded-md">
-                            <p>Status: {parcelData?.statusa ?? 'Loading...'}</p>
-                            <p>Location: {parcelData?.location?.lat ?? 'Loading...'}, {parcelData?.location?.lon ?? 'Loading...'}</p>
-                            <p>Timestamp: {parcelData?.timestamp ?? 'Loading...'}</p>
+            <div className="container mx-auto px-6 py-12">
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-semibold text-gray-800 mb-2">ข้อมูลการส่งพัสดุ</h1>
+                    {loading && <p className="mt-4 text-gray-500">กำลังโหลด...</p>}
+                </div>
+                
+                <div className="bg-white p-8 mt-6 rounded-lg shadow-xl">
+                    <div className="space-y-6">
+                        {/* ส่วนสำหรับ Tracking ID */}
+                        <div>
+                            <h2 className="text-2xl font-semibold text-gray-700">Tracking ID:</h2>
+                            <input
+                                type="text"
+                                value={trackingId}
+                                onChange={(e) => setTrackingId(e.target.value)}
+                                placeholder="กรุณากรอกหมายเลขติดตาม"
+                                className="w-full p-4 mt-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
                         </div>
-                    ) : (
-                        !loading && <p>ไม่พบพัสดุ</p>
-                    )}
+
+                        {/* แสดงข้อมูลพัสดุ */}
+                        {parcelData ? (
+                            <div className="bg-gray-100 p-4 shadow-lg rounded-md">
+                                <div className="space-y-4">
+                                    <p className="text-lg"><strong>Status:</strong> {parcelData?.statusa ?? 'Loading...'}</p>
+                                    <p className="text-lg"><strong>Location:</strong> {parcelData?.location?.lat ?? 'Loading...'}, {parcelData?.location?.lon ?? 'Loading...'}</p>
+                                    <p className="text-lg"><strong>Timestamp:</strong> {parcelData?.timestamp ?? 'Loading...'}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            !loading && <p className="text-gray-500"></p>
+                        )}
+
+                        {/* แสดงข้อมูลพัสดุทั้งหมดของผู้ใช้ */}
+                        <div>
+                            <h2 className="text-2xl font-semibold text-gray-700">พัสดุของคุณ</h2>
+                            {userParcels.length > 0 ? (
+                                <div className="mt-6 space-y-4">
+                                    {userParcels.map((parcel) => (
+                                        <div key={parcel.id} className="bg-white p-6 shadow-lg rounded-lg flex flex-col gap-4">
+                                            <p><strong className="text-gray-800">Tracking ID:</strong> {parcel.trackingId}</p>
+                                            <p><strong className="text-gray-800">Status:</strong> {parcel.statusa}</p>
+                                            <p><strong className="text-gray-800">Location:</strong> {parcel.location?.lat}, {parcel.location?.lon}</p>
+                                            <p><strong className="text-gray-800">Timestamp:</strong> {parcel.timestamp}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-gray-500">ไม่พบข้อมูลพัสดุของคุณ</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
