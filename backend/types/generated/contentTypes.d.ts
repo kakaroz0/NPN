@@ -399,7 +399,7 @@ export interface ApiParcelParcel extends Struct.CollectionTypeSchema {
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     user: Schema.Attribute.Relation<
-      'oneToMany',
+      'manyToMany',
       'plugin::users-permissions.user'
     >;
   };
@@ -880,7 +880,7 @@ export interface PluginUsersPermissionsUser
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Private;
-    parcel: Schema.Attribute.Relation<'manyToOne', 'api::parcel.parcel'>;
+    parcels: Schema.Attribute.Relation<'manyToMany', 'api::parcel.parcel'>;
     password: Schema.Attribute.Password &
       Schema.Attribute.Private &
       Schema.Attribute.SetMinMaxLength<{

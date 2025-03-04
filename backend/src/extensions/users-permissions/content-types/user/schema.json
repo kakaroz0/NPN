@@ -65,9 +65,9 @@
       "inversedBy": "users",
       "configurable": false
     },
-    "parcel": {
+    "parcels": {
       "type": "relation",
-      "relation": "manyToOne",
+      "relation": "manyToMany",
       "target": "api::parcel.parcel",
       "inversedBy": "user"
     }

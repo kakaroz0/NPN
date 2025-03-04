@@ -70,6 +70,8 @@ export default function UserPage() {
             // ตรวจสอบก่อนว่า WebSocket ให้ข้อมูลมาไหม
             if (!parcel) {
                 fetchParcelData(trackingId);  // ถ้าไม่มีข้อมูลจาก WebSocket ให้ดึงจาก API
+            } else {
+                setParcelData(parcel);  // ถ้ามีข้อมูลจาก WebSocket ให้อัปเดต parcelData
             }
         }
     }, [trackingId, parcel]);  // ตรวจสอบทั้ง trackingId และ parcel ที่ได้รับจาก WebSocket
@@ -94,7 +96,7 @@ export default function UserPage() {
                 <div className="mt-4">
                     {parcelData ? (
                         <div className="bg-white p-4 shadow-md rounded-md">
-                            <p>Status: {parcelData?.status ?? 'Loading...'}</p>
+                            <p>Status: {parcelData?.statusa ?? 'Loading...'}</p>
                             <p>Location: {parcelData?.location?.lat ?? 'Loading...'}, {parcelData?.location?.lon ?? 'Loading...'}</p>
                             <p>Timestamp: {parcelData?.timestamp ?? 'Loading...'}</p>
                         </div>

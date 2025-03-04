@@ -26,9 +26,9 @@
     },
     "user": {
       "type": "relation",
-      "relation": "oneToMany",
+      "relation": "manyToMany",
       "target": "plugin::users-permissions.user",
-      "mappedBy": "parcel"
+      "mappedBy": "parcels"
     }
   }
 }
