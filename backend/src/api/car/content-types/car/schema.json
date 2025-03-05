@@ -1,0 +1,30 @@
+{
+  "kind": "collectionType",
+  "collectionName": "cars",
+  "info": {
+    "singularName": "car",
+    "pluralName": "cars",
+    "displayName": "car",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "parcelcar": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::parcel.parcel",
+      "inversedBy": "cars"
+    },
+    "checkpoint1": {
+      "type": "boolean"
+    },
+    "checkpoint2": {
+      "type": "boolean"
+    },
+    "checkpoint3": {
+      "type": "boolean"
+    }
+  }
+}

@@ -29,6 +29,12 @@
       "relation": "manyToMany",
       "target": "plugin::users-permissions.user",
       "mappedBy": "parcels"
+    },
+    "cars": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::car.car",
+      "mappedBy": "parcelcar"
     }
   }
 }
