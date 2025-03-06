@@ -65,7 +65,7 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
 
     try {
       const car = await strapi.entityService.findOne('api::car.car', id, {
-        populate: { carId: true }, // เปลี่ยนจาก parcels เป็น carId ตาม response
+        populate: { carId: true }, // ใช้ carId ตาม response
       });
 
       if (!car) {
@@ -78,18 +78,11 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
     }
   },
 
-  // ฟังก์ชัน updateCheckpoint ที่อัปเดต timestamp ใน parcel
+  // ฟังก์ชัน updateCheckpoint โดยไม่ต้อง login
   async updateCheckpoint(ctx) {
     const { id } = ctx.params;
-    const userId = ctx.state.user?.id;
-    const userRole = ctx.state.user?.role?.name;
 
     try {
-      // Check if user is authenticated
-      if (!ctx.state.user) {
-        ctx.throw(401, 'Authentication required');
-      }
-
       // Validate ID
       if (!id || isNaN(id)) {
         ctx.throw(400, 'Valid Car ID is required');
@@ -102,11 +95,6 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
 
       if (!car) {
         return ctx.send({ message: 'Car not found' }, 404);
-      }
-
-      // Check authorization
-      if (userRole !== 'admin' && (!car.user || car.user.id !== userId)) {
-        ctx.throw(403, 'You are not allowed to update this car');
       }
 
       let updateCarData = {};
@@ -151,8 +139,6 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
         error: error.message,
         stack: error.stack,
         id,
-        userId,
-        userRole,
       });
       ctx.throw(error.status || 500, error.message || 'Failed to update checkpoint');
     }
