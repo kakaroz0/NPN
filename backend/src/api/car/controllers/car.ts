@@ -65,7 +65,7 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
 
     try {
       const car = await strapi.entityService.findOne('api::car.car', id, {
-        populate: '*',
+        populate: { carId: true }, // เปลี่ยนจาก parcels เป็น carId ตาม response
       });
 
       if (!car) {
@@ -78,63 +78,83 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
     }
   },
 
-  // เพิ่มฟังก์ชัน updateCheckpoint
+  // ฟังก์ชัน updateCheckpoint ที่อัปเดต timestamp ใน parcel
   async updateCheckpoint(ctx) {
     const { id } = ctx.params;
     const userId = ctx.state.user?.id;
     const userRole = ctx.state.user?.role?.name;
-  
+
     try {
       // Check if user is authenticated
       if (!ctx.state.user) {
         ctx.throw(401, 'Authentication required');
       }
-  
+
       // Validate ID
       if (!id || isNaN(id)) {
         ctx.throw(400, 'Valid Car ID is required');
       }
-  
+
+      // ดึงข้อมูล car พร้อม parcels (ใช้ carId ตาม response)
       const car = await strapi.entityService.findOne('api::car.car', id, {
-        populate: '*',
+        populate: { carId: true }, // Populate carId ที่สัมพันธ์กับ car
       });
-  
+
       if (!car) {
         return ctx.send({ message: 'Car not found' }, 404);
       }
-  
+
       // Check authorization
       if (userRole !== 'admin' && (!car.user || car.user.id !== userId)) {
         ctx.throw(403, 'You are not allowed to update this car');
       }
-  
-      let updateData = {};
+
+      let updateCarData = {};
+      const currentTime = new Date().toISOString(); // บันทึกเวลาในรูปแบบ ISO
+
+      // อัปเดต checkpoint ใน car
       if (!car.checkpoint1) {
-        updateData = { checkpoint1: true };
+        updateCarData = { checkpoint1: true };
       } else if (!car.checkpoint2) {
-        updateData = { checkpoint2: true };
+        updateCarData = { checkpoint2: true };
       } else if (!car.checkpoint3) {
-        updateData = { checkpoint3: true };
+        updateCarData = { checkpoint3: true };
       } else {
         ctx.throw(400, 'All checkpoints are already completed');
       }
-  
+
+      // อัปเดต car
       const updatedCar = await strapi.entityService.update('api::car.car', id, {
-        data: updateData,
+        data: updateCarData,
       });
-  
-      return updatedCar;
+
+      // อัปเดต timestamp ใน parcels ที่สัมพันธ์กับ car (ใช้ carId)
+      if (car.carId && car.carId.length > 0) {
+        const parcelUpdates = car.carId.map(async (parcel) => {
+          await strapi.entityService.update('api::parcel.parcel', parcel.id, {
+            data: {
+              timestamp: currentTime,
+            },
+          });
+        });
+        await Promise.all(parcelUpdates); // รอให้ทุก parcel อัปเดตเสร็จ
+      }
+
+      // ดึงข้อมูล car ล่าสุดพร้อม parcels ที่อัปเดตแล้ว
+      const finalCar = await strapi.entityService.findOne('api::car.car', id, {
+        populate: { carId: true },
+      });
+
+      return finalCar;
     } catch (error) {
-      // Detailed error logging
       strapi.log.error('Error updating checkpoint:', {
         error: error.message,
         stack: error.stack,
         id,
         userId,
-        userRole
+        userRole,
       });
-      // Return more specific error message
       ctx.throw(error.status || 500, error.message || 'Failed to update checkpoint');
     }
-  }
+  },
 }));
