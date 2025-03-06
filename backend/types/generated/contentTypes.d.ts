@@ -381,6 +381,7 @@ export interface ApiCarCar extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    carId: Schema.Attribute.Relation<'manyToMany', 'api::parcel.parcel'>;
     checkpoint1: Schema.Attribute.Boolean;
     checkpoint2: Schema.Attribute.Boolean;
     checkpoint3: Schema.Attribute.Boolean;
@@ -390,7 +391,6 @@ export interface ApiCarCar extends Struct.CollectionTypeSchema {
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::car.car'> &
       Schema.Attribute.Private;
-    parcelcar: Schema.Attribute.Relation<'manyToMany', 'api::parcel.parcel'>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &

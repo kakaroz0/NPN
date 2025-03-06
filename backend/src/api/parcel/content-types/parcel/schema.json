@@ -34,7 +34,7 @@
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::car.car",
-      "mappedBy": "parcelcar"
+      "mappedBy": "carId"
     }
   }
 }

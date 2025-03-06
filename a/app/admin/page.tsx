@@ -8,11 +8,12 @@ import Navbar from "./navbar";
 export default function AdminPage() {
     const [parcels, setParcels] = useState<any[]>([]);
     const [userCount, setUserCount] = useState(0);
+    const [carCount, setCarCount] = useState(0); // เพิ่ม state สำหรับจำนวนรถ
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchTrackingId, setSearchTrackingId] = useState("");
     const [searchedParcel, setSearchedParcel] = useState<any>(null);
-    const [sidebarOpen, setSidebarOpen] = useState(false); // สำหรับจัดการสถานะ Sidebar
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // ดึงข้อมูลพัสดุทั้งหมด
     const fetchAllParcels = async () => {
@@ -21,10 +22,12 @@ export default function AdminPage() {
             const response = await axios.get("http://localhost:1337/api/parcels/all", {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
-            setParcels(response.data);
+            const parcelData = response.data;
+            console.log("Parcel Data Sample:", parcelData[0]); // Debug: ดูโครงสร้างข้อมูล
+            setParcels(parcelData);
         } catch (error) {
             console.error("Failed to fetch parcels:", error);
-            setError("Failed to fetch parcels.");
+            setError("เกิดข้อผิดพลาดในการดึงข้อมูล parcels");
         } finally {
             setLoading(false);
         }
@@ -39,6 +42,21 @@ export default function AdminPage() {
             setUserCount(response.data.length);
         } catch (error) {
             console.error("Failed to fetch user count:", error);
+            setError("เกิดข้อผิดพลาดในการนับจำนวนผู้ใช้");
+        }
+    };
+
+    // ดึงข้อมูลรถและนับจำนวนรถ
+    const fetchCars = async () => {
+        try {
+            const response = await axios.get("http://localhost:1337/api/cars", {
+                headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
+            });
+            const carsData = response.data;
+            setCarCount(carsData.length); // นับจำนวนรถ
+        } catch (error) {
+            console.error("Failed to fetch cars:", error);
+            setError("เกิดข้อผิดพลาดในการดึงข้อมูลรถ");
         }
     };
 
@@ -53,24 +71,40 @@ export default function AdminPage() {
             const response = await axios.get(`http://localhost:1337/api/parcels?trackingId=${searchTrackingId}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
+            console.log("Search Result:", response.data);
             if (response.data && response.data.length > 0) {
                 setSearchedParcel(response.data[0]);
-                setError(null); // Clear previous errors
+                setError(null);
             } else {
                 setSearchedParcel(null);
                 setError("ไม่พบพัสดุ");
             }
         } catch (error) {
             console.error("Failed to search parcel:", error);
-            setError("Failed to search parcel.");
+            setError("เกิดข้อผิดพลาดในการค้นหาพัสดุ");
         } finally {
             setLoading(false);
         }
     };
 
+    // ฟังก์ชันกำหนดสถานะตาม checkpoint (ใช้ข้อมูลจาก parcel.cars[0])
+    const getCheckpointStatus = (parcel: any) => {
+        const car = parcel.cars && parcel.cars[0]; // ดึงข้อมูลรถจาก array cars
+        if (!car) return "ไม่มีข้อมูลรถ";
+        if (car.checkpoint1 && car.checkpoint2 && car.checkpoint3) {
+            return "อยู่ที่คัดแยกสินค้าของจังหวัด";
+        } else if (car.checkpoint1 && car.checkpoint2) {
+            return "อยู่ครึ่งทาง";
+        } else if (car.checkpoint1) {
+            return "ออกจากขนส่ง";
+        }
+        return "ยังไม่ได้เริ่ม";
+    };
+
     useEffect(() => {
         fetchAllParcels();
         fetchUserCount();
+        fetchCars(); // ดึงข้อมูลรถเมื่อโหลดหน้า
     }, []);
 
     return (
@@ -100,9 +134,12 @@ export default function AdminPage() {
                         <span className="mx-2 text-2xl font-semibold text-white">Dashboard</span>
                     </div>
                 </div>
-
                 <nav className="mt-10">
-                    <a className="flex items-center px-6 py-2 mt-4 text-gray-100 bg-gray-700 bg-opacity-25" href="#">
+                    <a
+                        className="flex items-center px-6 py-2 mt-4 text-gray-100 bg-gray-700 bg-opacity-25"
+                        href="#"
+                        onClick={() => fetchAllParcels()}
+                    >
                         <svg
                             className="w-6 h-6"
                             xmlns="http://www.w3.org/2000/svg"
@@ -130,7 +167,6 @@ export default function AdminPage() {
 
             {/* Main Content */}
             <div className="flex flex-col flex-1 overflow-hidden">
-                {/* Header */}
                 <header className="flex items-center justify-between px-6 py-4 bg-white border-b-4 border-indigo-600">
                     <div className="flex items-center">
                         <button
@@ -155,7 +191,6 @@ export default function AdminPage() {
                     </div>
                 </header>
 
-                {/* Main */}
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200">
                     <div className="container px-6 py-8 mx-auto">
                         <h3 className="text-3xl font-medium text-gray-700">Dashboard</h3>
@@ -205,10 +240,30 @@ export default function AdminPage() {
                                     <div className="text-gray-500">Total Parcels</div>
                                 </div>
                             </div>
+
+                            <div className="flex items-center p-4 bg-white rounded-lg shadow-sm">
+                                <div className="p-3 bg-blue-600 rounded-full">
+                                    <svg
+                                        className="w-8 h-8 text-white"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M5 13l4 4L19 7"
+                                        />
+                                    </svg>
+                                </div>
+                                <div className="ml-4">
+                                    <h4 className="text-2xl font-semibold text-gray-700">{carCount}</h4>
+                                    <div className="text-gray-500">Total Cars</div>
+                                </div>
+                            </div>
                         </div>
 
-                        
-                        
                         {/* Search Form */}
                         <div className="mt-6">
                             <input
@@ -221,6 +276,7 @@ export default function AdminPage() {
                             <button
                                 onClick={searchParcel}
                                 className="w-full mt-4 px-4 py-2 text-white bg-indigo-600 rounded-lg"
+                                disabled={loading}
                             >
                                 {loading ? "Searching..." : "Search"}
                             </button>
@@ -232,12 +288,13 @@ export default function AdminPage() {
                             {searchedParcel && (
                                 <div className="mt-4 bg-white p-4 rounded-lg shadow-sm">
                                     <div className="font-semibold">Parcel Details</div>
-                                    <div>Tracking ID: {searchedParcel.trackingId}</div>
-                                    <div>Status: {searchedParcel.statusa}</div>
-                                    <div>Location: {searchedParcel.location}</div>
+                                    <div>Tracking ID: {searchedParcel.trackingId || "ไม่ระบุ"}</div>
+                                    <div>Status: {searchedParcel.statusa || "ไม่ระบุ"}</div>
+                                    <div>Checkpoint: {getCheckpointStatus(searchedParcel)}</div>
                                 </div>
                             )}
                         </div>
+
                         {/* ตารางข้อมูลพัสดุ */}
                         <div className="mt-8">
                             <div className="overflow-hidden bg-white rounded-lg shadow">
@@ -251,7 +308,7 @@ export default function AdminPage() {
                                                 สถานะ
                                             </th>
                                             <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                                                ตำแหน่ง
+                                                ตำแหน่ง (Checkpoint)
                                             </th>
                                             <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                                                 เวลา
@@ -259,20 +316,30 @@ export default function AdminPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
-                                        {parcels.map((parcel) => (
-                                            <tr key={parcel.id}>
-                                                <td className="px-6 py-4 text-sm text-gray-900">{parcel.trackingId}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-900">{parcel.statusa}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-900">
-                                                    {parcel.location
-                                                        ? `${parcel.location.lat}, ${parcel.location.lon}`
-                                                        : "ไม่มีข้อมูล"}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-900">
-                                                    {parcel.timestamp || "ไม่มีข้อมูล"}
+                                        {parcels.length > 0 ? (
+                                            parcels.map((parcel) => (
+                                                <tr key={parcel.id}>
+                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                        {parcel.trackingId || "ไม่ระบุ"}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                        {parcel.statusa || "ไม่ระบุ"}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                        {getCheckpointStatus(parcel)}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                        {parcel.timestamp || "ไม่มีข้อมูล"}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={4} className="px-6 py-4 text-sm text-gray-500 text-center">
+                                                    ไม่มีข้อมูลพัสดุ
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
