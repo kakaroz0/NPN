@@ -8,7 +8,7 @@ import Navbar from "./navbar";
 export default function AdminPage() {
     const [parcels, setParcels] = useState<any[]>([]);
     const [userCount, setUserCount] = useState(0);
-    const [carCount, setCarCount] = useState(0); // เพิ่ม state สำหรับจำนวนรถ
+    const [carCount, setCarCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchTrackingId, setSearchTrackingId] = useState("");
@@ -17,19 +17,29 @@ export default function AdminPage() {
 
     // ดึงข้อมูลพัสดุทั้งหมด
     const fetchAllParcels = async () => {
-        setLoading(true);
         try {
             const response = await axios.get("http://localhost:1337/api/parcels/all", {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
-            const parcelData = response.data;
-            console.log("Parcel Data Sample:", parcelData[0]); // Debug: ดูโครงสร้างข้อมูล
-            setParcels(parcelData);
+            const newParcels = response.data;
+            console.log("Parcel Data Sample:", newParcels[0]);
+
+            // Merge ข้อมูลใหม่กับข้อมูลเก่า โดยใช้ id เป็น key
+            setParcels((prevParcels) => {
+                const merged = [...prevParcels];
+                newParcels.forEach((newParcel: any) => {
+                    const index = merged.findIndex((p) => p.id === newParcel.id);
+                    if (index !== -1) {
+                        merged[index] = newParcel; // อัปเดตข้อมูลที่มีอยู่
+                    } else {
+                        merged.push(newParcel); // เพิ่มข้อมูลใหม่
+                    }
+                });
+                return merged;
+            });
         } catch (error) {
             console.error("Failed to fetch parcels:", error);
             setError("เกิดข้อผิดพลาดในการดึงข้อมูล parcels");
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -52,8 +62,7 @@ export default function AdminPage() {
             const response = await axios.get("http://localhost:1337/api/cars", {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
-            const carsData = response.data;
-            setCarCount(carsData.length); // นับจำนวนรถ
+            setCarCount(response.data.length);
         } catch (error) {
             console.error("Failed to fetch cars:", error);
             setError("เกิดข้อผิดพลาดในการดึงข้อมูลรถ");
@@ -87,9 +96,9 @@ export default function AdminPage() {
         }
     };
 
-    // ฟังก์ชันกำหนดสถานะตาม checkpoint (ใช้ข้อมูลจาก parcel.cars[0])
+    // ฟังก์ชันกำหนดสถานะตาม checkpoint
     const getCheckpointStatus = (parcel: any) => {
-        const car = parcel.cars && parcel.cars[0]; // ดึงข้อมูลรถจาก array cars
+        const car = parcel.cars && parcel.cars[0];
         if (!car) return "ไม่มีข้อมูลรถ";
         if (car.checkpoint1 && car.checkpoint2 && car.checkpoint3) {
             return "อยู่ที่คัดแยกสินค้าของจังหวัด";
@@ -101,10 +110,18 @@ export default function AdminPage() {
         return "ยังไม่ได้เริ่ม";
     };
 
+    // โหลดข้อมูลเริ่มต้นและตั้ง polling
     useEffect(() => {
         fetchAllParcels();
         fetchUserCount();
-        fetchCars(); // ดึงข้อมูลรถเมื่อโหลดหน้า
+        fetchCars();
+
+        // Polling ทุก 5 วินาที
+        const interval = setInterval(() => {
+            fetchAllParcels();
+        }, 5000);
+
+        return () => clearInterval(interval); // ล้าง interval เมื่อ component unmount
     }, []);
 
     return (
@@ -140,25 +157,9 @@ export default function AdminPage() {
                         href="#"
                         onClick={() => fetchAllParcels()}
                     >
-                        <svg
-                            className="w-6 h-6"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
-                            />
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
-                            />
+                        <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
                         </svg>
                         <span className="mx-3">Dashboard</span>
                     </a>
@@ -169,23 +170,9 @@ export default function AdminPage() {
             <div className="flex flex-col flex-1 overflow-hidden">
                 <header className="flex items-center justify-between px-6 py-4 bg-white border-b-4 border-indigo-600">
                     <div className="flex items-center">
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="text-gray-500 focus:outline-none lg:hidden"
-                        >
-                            <svg
-                                className="w-6 h-6"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    d="M4 6H20M4 12H20M4 18H11"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 focus:outline-none lg:hidden">
+                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6H20M4 12H20M4 18H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                     </div>
@@ -199,12 +186,7 @@ export default function AdminPage() {
                         <div className="grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2 lg:grid-cols-3">
                             <div className="flex items-center p-4 bg-white rounded-lg shadow-sm">
                                 <div className="p-3 bg-indigo-600 rounded-full">
-                                    <svg
-                                        className="w-8 h-8 text-white"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
+                                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
@@ -221,12 +203,7 @@ export default function AdminPage() {
 
                             <div className="flex items-center p-4 bg-white rounded-lg shadow-sm">
                                 <div className="p-3 bg-green-600 rounded-full">
-                                    <svg
-                                        className="w-8 h-8 text-white"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
+                                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
@@ -243,18 +220,8 @@ export default function AdminPage() {
 
                             <div className="flex items-center p-4 bg-white rounded-lg shadow-sm">
                                 <div className="p-3 bg-blue-600 rounded-full">
-                                    <svg
-                                        className="w-8 h-8 text-white"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M5 13l4 4L19 7"
-                                        />
+                                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </div>
                                 <div className="ml-4">

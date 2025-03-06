@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import axiosConfig from "../axios-interceptor";
 import Navbar from "./navbar";
-import { useTracking } from "../hook/useTracking"; // ใช้ WebSocket เพื่อติดตามพัสดุ
 
 export default function UserPage() {
     const [userName, setUserName] = useState<string | null>(null);
@@ -14,9 +13,6 @@ export default function UserPage() {
     const [error, setError] = useState<string | null>(null);
     const [parcelData, setParcelData] = useState<any>(null);
     const [userParcels, setUserParcels] = useState<any[]>([]);
-
-    // ใช้ Hook สำหรับติดตามสถานะพัสดุแบบ Real-time
-    const parcel = useTracking(trackingId);
 
     // ฟังก์ชันดึงข้อมูลผู้ใช้
     const fetchUserData = async () => {
@@ -38,28 +34,38 @@ export default function UserPage() {
     // ฟังก์ชันดึงข้อมูลพัสดุของผู้ใช้
     const fetchUserParcels = async () => {
         if (!userId) return;
-        setLoading(true);
         try {
             const response = await axios.get(`http://localhost:1337/api/parcels/user/${userId}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
-            console.log("User Parcels:", response.data); // Debug: ดูข้อมูลพัสดุของผู้ใช้
-            setUserParcels(response.data);
+            const newParcels = response.data;
+            console.log("User Parcels:", newParcels);
+
+            // Merge ข้อมูลใหม่กับข้อมูลเก่า
+            setUserParcels((prevParcels) => {
+                const merged = [...prevParcels];
+                newParcels.forEach((newParcel: any) => {
+                    const index = merged.findIndex((p) => p.id === newParcel.id);
+                    if (index !== -1) {
+                        merged[index] = newParcel; // อัปเดตข้อมูลที่มีอยู่
+                    } else {
+                        merged.push(newParcel); // เพิ่มข้อมูลใหม่
+                    }
+                });
+                return merged;
+            });
         } catch (error) {
             console.error("Failed to fetch user parcels:", error);
             setError("Failed to fetch user parcels.");
-        } finally {
-            setLoading(false);
         }
     };
 
-    // ฟังก์ชันดึงข้อมูลพัสดุจาก Strapi ตาม trackingId
+    // ฟังก์ชันดึงข้อมูลพัสดุตาม trackingId
     const fetchParcelData = async (trackingId: string) => {
         if (!trackingId) {
             setError("กรุณากรอกหมายเลขติดตาม");
             return;
         }
-        setLoading(true);
         try {
             const response = await axios.get(`http://localhost:1337/api/parcels?trackingId=${trackingId}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
@@ -73,14 +79,12 @@ export default function UserPage() {
         } catch (error) {
             console.error("Failed to fetch parcel data:", error);
             setError("Failed to fetch parcel data.");
-        } finally {
-            setLoading(false);
         }
     };
 
-    // ฟังก์ชันกำหนดสถานะตาม checkpoint (เหมือนหน้า Admin)
+    // ฟังก์ชันกำหนดสถานะตาม checkpoint
     const getCheckpointStatus = (parcel: any) => {
-        const car = parcel.cars && parcel.cars[0]; // ดึงข้อมูลรถจาก array cars
+        const car = parcel.cars && parcel.cars[0];
         if (!car) return "ไม่มีข้อมูลรถ";
         if (car.checkpoint1 && car.checkpoint2 && car.checkpoint3) {
             return "อยู่ที่คัดแยกสินค้าของจังหวัด";
@@ -92,27 +96,36 @@ export default function UserPage() {
         return "ยังไม่ได้เริ่ม";
     };
 
+    // โหลดข้อมูลเริ่มต้นและตั้ง polling
     useEffect(() => {
         fetchUserData();
     }, []);
 
-    // Fetch parcels of the user when userId changes
     useEffect(() => {
         if (userId) {
             fetchUserParcels();
+
+            // Polling ทุก 5 วินาที
+            const interval = setInterval(() => {
+                fetchUserParcels();
+            }, 5000);
+
+            return () => clearInterval(interval);
         }
     }, [userId]);
 
-    // ใช้ WebSocket หรือ API ถ้าหาก trackingId มีค่า
     useEffect(() => {
         if (trackingId) {
-            if (!parcel) {
-                fetchParcelData(trackingId); // ถ้าไม่มีข้อมูลจาก WebSocket ให้ดึงจาก API
-            } else {
-                setParcelData(parcel); // ถ้ามีข้อมูลจาก WebSocket ให้อัปเดต parcelData
-            }
+            fetchParcelData(trackingId);
+
+            // Polling ทุก 5 วินาทีสำหรับ trackingId
+            const interval = setInterval(() => {
+                fetchParcelData(trackingId);
+            }, 5000);
+
+            return () => clearInterval(interval);
         }
-    }, [trackingId, parcel]);
+    }, [trackingId]);
 
     return (
         <div className="bg-gray-50 min-h-screen flex flex-col">
