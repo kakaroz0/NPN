@@ -11,7 +11,7 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
   async find(ctx) {
     try {
       const cars = await strapi.entityService.findMany('api::car.car', {
-        populate: '*', // ดึงข้อมูลทั้งหมด (รวมถึง relations)
+        populate: '*',
       });
       return cars;
     } catch (error) {
@@ -33,19 +33,16 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
 
   // ดึงข้อมูล car ของผู้ใช้โดยใช้ userId
   async findByUserId(ctx) {
-    const { userId } = ctx.params; // ดึง userId จากพารามิเตอร์
+    const { userId } = ctx.params;
 
     if (!userId) {
       ctx.throw(400, 'User ID is required');
     }
 
     try {
-      // ดึงข้อมูล car ที่เกี่ยวข้องกับ userId
       const cars = await strapi.entityService.findMany('api::car.car', {
-        filters: {
-          user: userId, // กรองข้อมูล car โดยใช้ userId
-        },
-        populate: '*', // ดึงข้อมูลทั้งหมด (รวมถึง relations)
+        filters: { user: userId },
+        populate: '*',
       });
 
       if (!cars || cars.length === 0) {
@@ -57,26 +54,87 @@ module.exports = createCoreController('api::car.car', ({ strapi }) => ({
       ctx.throw(500, 'Failed to fetch cars for this user');
     }
   },
+
+  // ดึงข้อมูล car รายการเดียว
   async findOne(ctx) {
-    const { id } = ctx.params; // ดึง id จากพารามิเตอร์
-  
+    const { id } = ctx.params;
+
     if (!id) {
       ctx.throw(400, 'Car ID is required');
     }
+
+    try {
+      const car = await strapi.entityService.findOne('api::car.car', id, {
+        populate: '*',
+      });
+
+      if (!car) {
+        return ctx.send({ message: 'Car not found' }, 404);
+      }
+
+      return car;
+    } catch (error) {
+      ctx.throw(500, 'Failed to fetch car');
+    }
+  },
+
+  // เพิ่มฟังก์ชัน updateCheckpoint
+  async updateCheckpoint(ctx) {
+    const { id } = ctx.params;
+    const userId = ctx.state.user?.id;
+    const userRole = ctx.state.user?.role?.name;
   
     try {
-      // ดึงข้อมูล car ที่มี id ตรงกับที่ระบุ
+      // Check if user is authenticated
+      if (!ctx.state.user) {
+        ctx.throw(401, 'Authentication required');
+      }
+  
+      // Validate ID
+      if (!id || isNaN(id)) {
+        ctx.throw(400, 'Valid Car ID is required');
+      }
+  
       const car = await strapi.entityService.findOne('api::car.car', id, {
-        populate: '*', // ดึงข้อมูลทั้งหมด (รวมถึง relations)
+        populate: '*',
       });
   
       if (!car) {
         return ctx.send({ message: 'Car not found' }, 404);
       }
   
-      return car;
+      // Check authorization
+      if (userRole !== 'admin' && (!car.user || car.user.id !== userId)) {
+        ctx.throw(403, 'You are not allowed to update this car');
+      }
+  
+      let updateData = {};
+      if (!car.checkpoint1) {
+        updateData = { checkpoint1: true };
+      } else if (!car.checkpoint2) {
+        updateData = { checkpoint2: true };
+      } else if (!car.checkpoint3) {
+        updateData = { checkpoint3: true };
+      } else {
+        ctx.throw(400, 'All checkpoints are already completed');
+      }
+  
+      const updatedCar = await strapi.entityService.update('api::car.car', id, {
+        data: updateData,
+      });
+  
+      return updatedCar;
     } catch (error) {
-      ctx.throw(500, 'Failed to fetch car');
+      // Detailed error logging
+      strapi.log.error('Error updating checkpoint:', {
+        error: error.message,
+        stack: error.stack,
+        id,
+        userId,
+        userRole
+      });
+      // Return more specific error message
+      ctx.throw(error.status || 500, error.message || 'Failed to update checkpoint');
     }
-  },
+  }
 }));
