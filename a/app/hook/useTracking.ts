@@ -1,30 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
+import { API_PATHS } from "../config/api"; // ปรับ path ให้ถูกต้อง
 
-const socket = io("http://localhost:1337"); // URL ของ Strapi
+// Type สำหรับข้อมูลพัสดุ
+interface ParcelData {
+  trackingId: string;
+  status?: string;
+  location?: string;
+  [key: string]: any;
+}
+
+// สร้าง socket instance โดยใช้ API_PATHS
+const socket: Socket = io(API_PATHS.PACKAGES.split('/api/packages')[0], {
+  reconnection: true,
+  transports: ["websocket"],
+});
 
 export function useTracking(trackingId: string) {
-    const [parcel, setParcel] = useState<any>(null);
+  const [parcel, setParcel] = useState<ParcelData | null>(null);
 
-    useEffect(() => {
-        if (!trackingId) return;
+  useEffect(() => {
+    if (!trackingId) return;
 
-        // ส่ง trackingId ไปที่ Server เพื่อขออัปเดตสถานะพัสดุ
-        socket.emit("track_parcel", trackingId);
+    socket.emit("track_parcel", trackingId);
 
-        // รับข้อมูลพัสดุเมื่อเซิร์ฟเวอร์ส่งข้อมูลมา
-        socket.on("parcel_update", (data) => {
-            if (data.trackingId === trackingId) {
-                setParcel(data);
-            }
-        });
+    const handleParcelUpdate = (data: ParcelData) => {
+      if (data.trackingId === trackingId) {
+        setParcel(data);
+      }
+    };
 
-        return () => {
-            socket.off("parcel_update");
-        };
-    }, [trackingId]);
+    socket.on("parcel_update", handleParcelUpdate);
 
-    return parcel;
+    return () => {
+      socket.off("parcel_update", handleParcelUpdate);
+    };
+  }, [trackingId]);
+
+  return parcel;
 }
