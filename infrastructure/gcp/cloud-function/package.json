@@ -1,0 +1,13 @@
+
+{
+    "name": "package-tracking-function",
+    "version": "1.0.0",
+    "main": "index.js",
+    "dependencies": {
+      "@google-cloud/pubsub": "^2.18.0"
+    },
+    "scripts": {
+      "deploy": "gcloud functions deploy processCheckpoint --runtime nodejs16 --trigger-topic package-tracking"
+    }
+  }
+  
