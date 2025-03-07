@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pubsub-listener
+spec:
+  replicas: 3  # จำนวน Pod ที่ต้องการ
+  selector:
+    matchLabels:
+      app: pubsub-listener
+  template:
+    metadata:
+      labels:
+        app: pubsub-listener
+    spec:
+      containers:
+      - name: pubsub-listener
+        image: gcr.io/your-gcp-project/pubsub-listener:latest
+        env:
+          - name: PUBSUB_TOPIC
+            value: "projects/your-gcp-project/topics/package-tracking"

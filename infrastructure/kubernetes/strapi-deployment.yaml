@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strapi
+spec:
+  replicas: 1  # ลดจาก 3 เป็น 1 เพื่อทดสอบ
+  selector:
+    matchLabels:
+      app: strapi
+  template:
+    metadata:
+      labels:
+        app: strapi
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+      - name: strapi
+        image: gcr.io/expanded-rider-445003-j0/strapi:latest
+        ports:
+        - containerPort: 1337
+        resources:
+          limits:
+            cpu: "1"
+            memory: "2Gi"  # เพิ่มจาก 1Gi เป็น 2Gi
+          requests:
+            cpu: "200m"    # ลดจาก 500m
+            memory: "512Mi" # ลดจาก 1Gi
+        env:
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "1337"
+        - name: DATABASE_CLIENT
+          value: "sqlite"
+        - name: DATABASE_FILENAME
+          value: "/data/strapi.db"
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=1024" # จำกัด memory ที่ Node.js ใช้
+        volumeMounts:
+        - name: strapi-data
+          mountPath: "/data"
+      volumes:
+      - name: strapi-data
+        emptyDir: {}
