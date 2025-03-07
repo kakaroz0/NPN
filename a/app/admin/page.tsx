@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import axiosConfig from "../axios-interceptor";
 import Navbar from "./navbar";
+import { API_PATHS } from "../config/api";
 
 export default function AdminPage() {
     const [parcels, setParcels] = useState<any[]>([]);
@@ -18,7 +19,7 @@ export default function AdminPage() {
     // ดึงข้อมูลพัสดุทั้งหมด
     const fetchAllParcels = async () => {
         try {
-            const response = await axios.get("http://localhost:1337/api/parcels/all", {
+            const response = await axios.get(`${API_PATHS.PARCELS}/all`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
             const newParcels = response.data;
@@ -46,7 +47,7 @@ export default function AdminPage() {
     // ดึงข้อมูลจำนวนผู้ใช้
     const fetchUserCount = async () => {
         try {
-            const response = await axios.get("http://localhost:1337/api/users", {
+            const response = await axios.get(`${API_PATHS.USERS}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
             setUserCount(response.data.length);
@@ -59,7 +60,7 @@ export default function AdminPage() {
     // ดึงข้อมูลรถและนับจำนวนรถ
     const fetchCars = async () => {
         try {
-            const response = await axios.get("http://localhost:1337/api/cars", {
+            const response = await axios.get(`${API_PATHS}/api/cars`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
             setCarCount(response.data.length);
@@ -77,7 +78,7 @@ export default function AdminPage() {
         }
         setLoading(true);
         try {
-            const response = await axios.get(`http://localhost:1337/api/parcels?trackingId=${searchTrackingId}`, {
+            const response = await axios.get(`${API_PATHS.PARCELS}?trackingId=${searchTrackingId}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
             console.log("Search Result:", response.data);
