@@ -1,0 +1,8 @@
+# Terraform directories and files
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Optional: Ignore other local files
+*.log
+crash.log
