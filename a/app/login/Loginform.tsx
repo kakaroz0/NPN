@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import axiosConfig from '../axios-interceptor';
 import { useRouter } from 'next/navigation';
+import { API_PATHS } from '../config/api';
 
 const LoginForm: React.FC = () => {
     const router = useRouter();
@@ -26,14 +27,14 @@ const LoginForm: React.FC = () => {
 
         try {
             // Step 1: Authenticate user
-            let result = await axios.post('http://localhost:1337/api/auth/local', {
+            let result = await axios.post(`${API_PATHS.AUTH_LOCAL}`, {
                 identifier: username,
                 password: password
             });
             axiosConfig.jwt = result.data.jwt; // Save JWT if needed
 
             // Step 2: Fetch user data including role
-            result = await axios.get('http://localhost:1337/api/users/me?populate=role');
+            result = await axios.get(`${API_PATHS.USER_ME}?populate=role`);
             console.log('User Data:', result.data); // Debugging output
 
             // Step 3: Check user role and redirect accordingly
