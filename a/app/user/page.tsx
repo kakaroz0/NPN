@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import axiosConfig from "../axios-interceptor";
 import Navbar from "./navbar";
+import { API_PATHS } from "../config/api";
 
 export default function UserPage() {
     const [userName, setUserName] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export default function UserPage() {
     const fetchUserData = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("http://localhost:1337/api/users/me", {
+            const response = await axios.get(`${API_PATHS.USER_ME}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
             setUserName(response.data.username);
@@ -35,7 +36,7 @@ export default function UserPage() {
     const fetchUserParcels = async () => {
         if (!userId) return;
         try {
-            const response = await axios.get(`http://localhost:1337/api/parcels/user/${userId}`, {
+            const response = await axios.get(`${API_PATHS.PARCELS}/user/${userId}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
             const newParcels = response.data;
@@ -67,7 +68,7 @@ export default function UserPage() {
             return;
         }
         try {
-            const response = await axios.get(`http://localhost:1337/api/parcels?trackingId=${trackingId}`, {
+            const response = await axios.get(`${API_PATHS.PARCELS}?trackingId=${trackingId}`, {
                 headers: { Authorization: `Bearer ${axiosConfig.jwt}` },
             });
             console.log(`Fetching parcel data with trackingId: ${trackingId}`, response.data);

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { API_PATHS } from "../config/api";
 
 interface User {
   id: number;
@@ -14,7 +15,7 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get("http://localhost:1337/api/users/me");
+        const response = await axios.get(`${API_PATHS.USER_ME}`);
         setUser(response.data); // เก็บข้อมูลผู้ใช้ทั้งหมด (object)
       } catch (error) {
         console.error("Failed to fetch user data:", error);
