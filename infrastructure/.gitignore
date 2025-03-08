@@ -6,3 +6,10 @@
 # Optional: Ignore other local files
 *.log
 crash.log
+
+# Ignore Terraform-related files
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/expanded-rider-*.json
+infrastructure/terraform/terraform.tfstate
+infrastructure/terraform/terraform.tfstate.*
+infrastructure/terraform/.terraform/
